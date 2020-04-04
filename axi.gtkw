@@ -1,0 +1,46 @@
+[*]
+[*] GTKWave Analyzer v3.3.86 (w)1999-2017 BSI
+[*] Sat Apr  4 00:26:49 2020
+[*]
+[dumpfile] "/home/christian/develop/hw/dma_unit/simWorkspace/DmaUnit/test.vcd"
+[dumpfile_mtime] "Sat Apr  4 00:24:07 2020"
+[dumpfile_size] 75575
+[savefile] "/home/christian/develop/hw/dma_unit/axi.gtkw"
+[timestart] 0
+[size] 1853 1025
+[pos] -29 -29
+*-9.000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.DmaUnit.
+[treeopen] TOP.DmaUnit.axiReader_1_.
+[treeopen] TOP.DmaUnit.axiWriter_1_.
+[sst_width] 491
+[signals_width] 310
+[sst_expanded] 1
+[sst_vpaned_height] 301
+@28
+TOP.DmaUnit.clk
+TOP.DmaUnit.reset
+TOP.DmaUnit.io_irq
+TOP.DmaUnit.axiReader_1_.io_axi_master_ar_valid
+TOP.DmaUnit.axiReader_1_.io_axi_master_ar_ready
+@22
+TOP.DmaUnit.axiReader_1_.io_axi_master_ar_payload_addr[31:0]
+@28
+TOP.DmaUnit.axiReader_1_.io_axi_master_r_valid
+TOP.DmaUnit.axiReader_1_.io_axi_master_r_ready
+@22
+TOP.DmaUnit.axiReader_1_.io_axi_master_r_payload_data[127:0]
+@28
+TOP.DmaUnit.axiWriter_1_.io_axi_master_aw_valid
+TOP.DmaUnit.axiWriter_1_.io_axi_master_aw_ready
+@22
+TOP.DmaUnit.axiWriter_1_.io_axi_master_aw_payload_addr[31:0]
+@28
+TOP.DmaUnit.axiWriter_1_.io_axi_master_w_valid
+@29
+TOP.DmaUnit.axiWriter_1_.io_axi_master_w_ready
+@22
+TOP.DmaUnit.axiWriter_1_.io_axi_master_w_payload_data[127:0]
+[pattern_trace] 1
+[pattern_trace] 0
