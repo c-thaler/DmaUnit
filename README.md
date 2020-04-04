@@ -12,6 +12,6 @@ Simple testbench is included. It also contains a nice AXI4 Bus Memory model.
 Register map
 ============
 
-0x00 - source address
-0x04 - word count - 1
-0x08 - destination address and trigger
+* 0x00 - source address
+* 0x04 - word count - 1
+* 0x08 - destination address and trigger
