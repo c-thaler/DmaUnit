@@ -97,7 +97,7 @@ case class AxiWriter(config : Axi4Config) extends Component {
 
         val write_bus : State = new State {
             onEntry(
-              w_valid := True,
+              w_valid := True
             )
             whenIsActive(
                 write_fifo.io.pop.ready := io.axi_master.writeData.ready,

@@ -180,7 +180,7 @@ case class SparseMemory() {
 
 case class AxiJob (
   address     : Long,
-  burstLength : Int,
+  burstLength : Int
 ) {
   // check for read/write over 4k boundary
 }

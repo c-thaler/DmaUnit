@@ -1,7 +1,6 @@
 package dma_unit
 
 import scala.util.Random
-import scala.util.continuations._
 
 import spinal.core._
 import spinal.sim._
@@ -11,6 +10,7 @@ import spinal.lib.bus.amba4.axi._
 import spinal.lib.bus.amba4.axilite._
 
 import dma_unit.axi._
+import spinal.lib.eda.altera.QSysify
 
 case class AxiLite4Driver(axi : AxiLite4, clockDomain : ClockDomain) {
 
@@ -45,6 +45,8 @@ object DmaUnitSim {
     SimConfig.withWave.doSim(new DmaUnit){dut =>
       //Fork a process to generate the reset and the clock on the dut
       dut.clockDomain.forkStimulus(period = 10)
+
+      QSysify(dut)
 
       val axiLite = AxiLite4Driver(dut.io.axi_slave, dut.clockDomain)
       val axiSim = AxiMemorySim(dut.io.axi_master, dut.clockDomain)

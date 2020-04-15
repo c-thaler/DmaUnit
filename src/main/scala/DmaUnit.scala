@@ -9,6 +9,7 @@ import spinal.lib.bus.amba4.axilite._
 import spinal.lib.fsm._
 
 import dma_unit.axi._
+import spinal.lib.eda.altera.QSysify
 
 object Axi4CoreConfig{
   def getAxi4Config = Axi4Config(
