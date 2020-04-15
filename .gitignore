@@ -43,3 +43,4 @@ project
 simWorkspace/
 tmp/
 null
+*.tcl
