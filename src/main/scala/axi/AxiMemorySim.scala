@@ -285,8 +285,6 @@ case class AxiMemorySim(axi : Axi4, clockDomain : ClockDomain) {
     while(true) {
       clockDomain.waitSampling(10)
 
-      assert(!(pending_writes.isEmpty && w.valid.toBoolean), "AXI: write without write cmd")
-
       if(pending_writes.nonEmpty) {
         var job = pending_writes.dequeue()
         var count = job.burstLength
