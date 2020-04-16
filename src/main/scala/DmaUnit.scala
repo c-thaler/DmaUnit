@@ -9,7 +9,7 @@ import spinal.lib.bus.amba4.axilite._
 import spinal.lib.fsm._
 
 import dma_unit.axi._
-import spinal.lib.eda.altera.QSysify
+import spinal.lib.eda.altera._
 
 object Axi4CoreConfig{
   def getAxi4Config = Axi4Config(
@@ -26,7 +26,7 @@ object Axi4CoreConfig{
 class DmaUnit extends Component {
   val io = new Bundle {
     val irq = out Bool
-    val axi_slave = slave(AxiLite4(addressWidth=32, dataWidth=32))
+    val axi_slave = slave(AxiLite4(addressWidth=4, dataWidth=32))
     val axi_master = master(Axi4(Axi4CoreConfig.getAxi4Config))
   }
 
@@ -45,10 +45,11 @@ class DmaUnit extends Component {
   write_job_valid := False
   fire := False
 
-  axiSlaveCtrl.driveAndRead(read_job.address,     0x0)
-  axiSlaveCtrl.driveAndRead(read_job.word_count,  0x4)
-  axiSlaveCtrl.driveAndRead(write_job.address,    0x8)
-  axiSlaveCtrl.onWrite(0x8) {
+  axiSlaveCtrl.read(B(0xdead), 0x0)
+  axiSlaveCtrl.driveAndRead(read_job.address,     0x4)
+  axiSlaveCtrl.driveAndRead(read_job.word_count,  0x8)
+  axiSlaveCtrl.driveAndRead(write_job.address,    0xc)
+  axiSlaveCtrl.onWrite(0xc) {
     fire := True
   }
 
@@ -98,8 +99,15 @@ class DmaUnit extends Component {
   }
 }
 
-object DmaUnitVhdl {
+object DmaUnitQSysify {
   def main(args: Array[String]) {
-    SpinalVhdl(new DmaUnit)
+    val toplevel = SpinalVhdl(new DmaUnit).toplevel
+
+    toplevel.io.axi_master addTag(ClockDomainTag(toplevel.clockDomain))
+    toplevel.io.axi_slave addTag(ClockDomainTag(toplevel.clockDomain))
+    toplevel.io.irq addTag(InterruptSenderTag(toplevel.clockDomain))
+
+    println("Generating QSys tcl script for ...")
+    QSysify(toplevel)
   }
 }

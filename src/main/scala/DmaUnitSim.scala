@@ -22,6 +22,25 @@ case class AxiLite4Driver(axi : AxiLite4, clockDomain : ClockDomain) {
     axi.b.ready #= true
   }
 
+  def read(address : BigInt) : BigInt = {
+    axi.ar.payload.prot.assignBigInt(6)
+    
+    axi.ar.valid #= true
+    axi.ar.payload.addr #= address
+
+    axi.r.ready #= true
+
+    clockDomain.waitSamplingWhere(axi.ar.ready.toBoolean)
+
+    axi.ar.valid #= false
+
+    clockDomain.waitSamplingWhere(axi.r.valid.toBoolean)
+
+    axi.r.ready #= false
+
+    axi.r.payload.data.toBigInt
+  }
+
   def write(address : BigInt, data : BigInt) : Unit = {
     axi.aw.payload.prot.assignBigInt(6)
     axi.w.payload.strb.assignBigInt(15)
@@ -46,8 +65,6 @@ object DmaUnitSim {
       //Fork a process to generate the reset and the clock on the dut
       dut.clockDomain.forkStimulus(period = 10)
 
-      QSysify(dut)
-
       val axiLite = AxiLite4Driver(dut.io.axi_slave, dut.clockDomain)
       val axiSim = AxiMemorySim(dut.io.axi_master, dut.clockDomain)
 
@@ -58,9 +75,10 @@ object DmaUnitSim {
 
       dut.clockDomain.waitSampling(10)
 
-      axiLite.write(0x0, 0x00004000l)
-      axiLite.write(0x4, 35)
-      axiLite.write(0x8, 0x00008000l)
+      axiLite.read(0x0)
+      axiLite.write(0x4, 0x00004000l)
+      axiLite.write(0x8, 35)
+      axiLite.write(0xc, 0x00008000l)
 
       dut.clockDomain.waitSampling(100)
     }
