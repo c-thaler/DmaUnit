@@ -26,7 +26,7 @@ case class AxiReader(config : Axi4Config) extends Component {
     read_fifo.io.push.payload := io.axi_master.readRsp.payload.data
     io.read_out << read_fifo.io.pop
 
-    val fsm = new StateMachine {
+    val fsm_ar = new StateMachine {
         val words_left = Reg(UInt(8 bits))
         val read_valid = Reg(Bool) init(False)
         val ar = Reg(Axi4Ar(config))
@@ -56,17 +56,17 @@ case class AxiReader(config : Axi4Config) extends Component {
 
         val start_read : State = new State {
             whenIsActive(
-                when(read_fifo.io.availability >= 16) {
+                when(read_fifo.io.availability >= fifo_depth || read_fifo.io.availability >= words_left) {
                     read_valid := True
+                    when(words_left >= fifo_depth - 1) {
+                        ar.len := fifo_depth - 1
+                        words_left := words_left - fifo_depth
+                    }.otherwise {
+                        ar.len := words_left.resized
+                        words_left := 0
+                    }
                     goto(wait_read)
-                },
-                when(words_left >= 15) {
-                    ar.len := 15
-                    words_left := words_left - 16
-                }.otherwise {
-                    ar.len := words_left.resized
-                    words_left := 0
-                }
+                }                
             )
         }
 
@@ -81,13 +81,11 @@ case class AxiReader(config : Axi4Config) extends Component {
 
         val read_resp : State = new State {
             whenIsActive (
-                when(io.axi_master.r.last) {
-                    when(words_left =/= 0) {
-                        ar.addr := ar.addr + 16
-                        goto(start_read)
-                    }.otherwise {
-                        goto(idle)
-                    }
+                when(words_left =/= 0) {
+                    ar.addr := ar.addr + fifo_depth
+                    goto(start_read)
+                }.otherwise {
+                    goto(idle)
                 }
             )
         }

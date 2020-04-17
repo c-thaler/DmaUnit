@@ -61,10 +61,10 @@ case class AxiWriter(config : Axi4Config) extends Component {
                 when(!w_busy) {
                     aw_valid := True
                     w_fire := True
-                    when(words_left >= 15) {
-                        aw.len := 15
-                        w_len := 15
-                        words_left := words_left - 16
+                    when(words_left >= fifo_depth - 1) {
+                        aw.len := fifo_depth - 1
+                        w_len := fifo_depth - 1
+                        words_left := words_left - fifo_depth
                     }.otherwise {
                         aw.len := words_left
                         w_len := words_left
@@ -82,7 +82,7 @@ case class AxiWriter(config : Axi4Config) extends Component {
                     when(words_left === 0) {
                         goto(idle)
                     }.otherwise {
-                        aw.addr := aw.addr + 16
+                        aw.addr := aw.addr + fifo_depth
                         goto(wait_on_data)
                     }
                 }
