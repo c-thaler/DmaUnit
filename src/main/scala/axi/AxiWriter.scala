@@ -5,22 +5,22 @@ import spinal.lib._
 import spinal.lib.bus.amba4.axi._
 import spinal.lib.fsm._
 
-case class WriteJob(config : Axi4Config) extends Bundle {
+case class WriteJob(config : Axi4Config, wordCountWidth : Int) extends Bundle {
     val address = UInt(config.addressWidth bits)
-    val word_count = UInt(9 bits)
+    val word_count = UInt(wordCountWidth bits)
 }
 
-case class AxiWriter(config : Axi4Config, maxBurstLength : Int) extends Component {
+case class AxiWriter(config : Axi4Config, wordCountWidth : Int, maxBurstLength : Int) extends Component {
     val io = new Bundle {
         val axi_master = master(Axi4WriteOnly(config))
-        val write_job = slave(Stream(WriteJob(config)))
+        val write_job = slave(Stream(WriteJob(config, wordCountWidth)))
         val write_in = slave(Stream(Bits(config.dataWidth bits)))
         val busy = out Bool
     }
 
     val w_fire = Bool
     val w_busy = Bool
-    val w_len = UInt(8 bits)
+    val w_len = UInt(wordCountWidth bits)
     val fifo_depth = maxBurstLength
     val write_fifo = StreamFifo(Bits(config.dataWidth bits), fifo_depth)
     
@@ -29,7 +29,7 @@ case class AxiWriter(config : Axi4Config, maxBurstLength : Int) extends Componen
     val fsm_aw = new StateMachine {
         val aw_valid = Reg(Bool) init(False)
         val aw = Reg(Axi4Aw(config))
-        val words_left = Reg(UInt(9 bits))
+        val words_left = Reg(UInt(wordCountWidth bits))
 
         io.axi_master.writeCmd.valid := aw_valid
         io.axi_master.writeCmd.payload := aw
@@ -93,7 +93,7 @@ case class AxiWriter(config : Axi4Config, maxBurstLength : Int) extends Componen
     val fsm_w = new StateMachine {
         val w_valid = Reg(Bool) init(False)
         val w = Reg(Axi4W(config))
-        val words_left = Reg(UInt(8 bits))
+        val words_left = Reg(UInt(wordCountWidth bits))
         
         io.axi_master.writeRsp.ready := True
         io.axi_master.writeData.valid := w_valid
@@ -152,6 +152,6 @@ case class AxiWriter(config : Axi4Config, maxBurstLength : Int) extends Componen
     }
 
     def writeJobFactory() : WriteJob = {
-        WriteJob(config)
+        WriteJob(config, wordCountWidth)
     }
 }

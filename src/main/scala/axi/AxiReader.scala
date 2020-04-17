@@ -5,15 +5,15 @@ import spinal.lib._
 import spinal.lib.bus.amba4.axi._
 import spinal.lib.fsm._
 
-case class ReadJob(config : Axi4Config) extends Bundle {
+case class ReadJob(config : Axi4Config, wordCountWidth : Int) extends Bundle {
     val address = UInt(config.addressWidth bits)
-    val word_count = UInt(9 bits)
+    val word_count = UInt(wordCountWidth bits)
 }
 
-case class AxiReader(config : Axi4Config, maxBurstLength : Int, maxOutstandingReads : Int) extends Component {
+case class AxiReader(config : Axi4Config, wordCountWidth : Int, maxBurstLength : Int, maxOutstandingReads : Int) extends Component {
     val io = new Bundle {
         val axi_master = master(Axi4ReadOnly(config))
-        val read_job = slave(Stream(ReadJob(config)))
+        val read_job = slave(Stream(ReadJob(config, wordCountWidth)))
         val read_out = master(Stream(Bits(config.dataWidth bits)))
         val busy = out Bool
     }
@@ -24,10 +24,10 @@ case class AxiReader(config : Axi4Config, maxBurstLength : Int, maxOutstandingRe
     val outstandingWordsCounter = new Area {
         val incr = Bool
         val decr = Bool
-        val incr_value = SInt(9 bits)
+        val incr_value = SInt(wordCountWidth bits)
         val outstandingWords = Reg(UInt(log2Up(fifo_depth + 1) bits)) init(0)
         val full = Bool
-        var nextValue = SInt(9 bits)
+        var nextValue = SInt(wordCountWidth bits)
 
         full := (outstandingWords + maxBurstLength) >= fifo_depth
 
@@ -48,7 +48,7 @@ case class AxiReader(config : Axi4Config, maxBurstLength : Int, maxOutstandingRe
     outstandingWordsCounter.decr := read_fifo.io.pop.valid && read_fifo.io.pop.ready
 
     val fsm_ar = new StateMachine {
-        val words_left = Reg(UInt(9 bits))
+        val words_left = Reg(UInt(wordCountWidth bits))
         val read_valid = Reg(Bool) init(False)
         val ar = Reg(Axi4Ar(config))
 
@@ -116,6 +116,6 @@ case class AxiReader(config : Axi4Config, maxBurstLength : Int, maxOutstandingRe
     }
 
     def readJobFactory() : ReadJob = {
-        ReadJob(config)
+        ReadJob(config, wordCountWidth)
     }
 }
