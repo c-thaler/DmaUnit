@@ -224,6 +224,11 @@ case class AxiMemorySim(axi : Axi4, clockDomain : ClockDomain) {
       ar.ready #= true
       clockDomain.waitSamplingWhere(ar.valid.toBoolean)
       ar.ready #= false
+
+      assert(
+        assertion = (ar.payload.len.toBigInt + (ar.payload.addr.toBigInt & 4095)) <= 4095,
+        message   = s"Read request crossing 4k boundary (addr=${ar.payload.addr.toBigInt.toString(16)}, len=${ar.payload.len.toLong.toHexString}"
+      )
       
       pending_reads += newAxiJob(ar.payload.addr.toLong, ar.payload.len.toInt)
 
@@ -269,6 +274,11 @@ case class AxiMemorySim(axi : Axi4, clockDomain : ClockDomain) {
       aw.ready #= true
       clockDomain.waitSamplingWhere(aw.valid.toBoolean)
       aw.ready #= false
+
+      assert(
+        assertion = (aw.payload.len.toBigInt + (aw.payload.addr.toBigInt & 4095)) <= 4095,
+        message   = s"Write request crossing 4k boundary (addr=${aw.payload.addr.toBigInt.toString(16)}, len=${aw.payload.len.toLong.toHexString}"
+      )
 
       pending_writes += newAxiJob(aw.payload.addr.toLong, aw.payload.len.toInt)
 
