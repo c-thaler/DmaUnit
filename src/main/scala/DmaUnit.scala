@@ -31,8 +31,8 @@ class DmaUnit extends Component {
   }
 
   val axiSlaveCtrl = new AxiLite4SlaveFactory(io.axi_slave)
-  val axiReader = AxiReader(Axi4CoreConfig.getAxi4Config)
-  val axiWriter = AxiWriter(Axi4CoreConfig.getAxi4Config)
+  val axiReader = AxiReader(Axi4CoreConfig.getAxi4Config, 32, 4)
+  val axiWriter = AxiWriter(Axi4CoreConfig.getAxi4Config, 32)
   val read_job = axiReader.readJobFactory()
   val read_job_valid = Reg(Bool) init(False)
   val write_job = axiWriter.writeJobFactory()

@@ -7,10 +7,10 @@ import spinal.lib.fsm._
 
 case class ReadJob(config : Axi4Config) extends Bundle {
     val address = UInt(config.addressWidth bits)
-    val word_count = UInt(8 bits)
+    val word_count = UInt(9 bits)
 }
 
-case class AxiReader(config : Axi4Config) extends Component {
+case class AxiReader(config : Axi4Config, maxBurstLength : Int, maxOutstandingReads : Int) extends Component {
     val io = new Bundle {
         val axi_master = master(Axi4ReadOnly(config))
         val read_job = slave(Stream(ReadJob(config)))
@@ -18,16 +18,37 @@ case class AxiReader(config : Axi4Config) extends Component {
         val busy = out Bool
     }
 
-    val fifo_depth = 32
+    val fifo_depth = maxOutstandingReads * maxBurstLength
     val read_fifo = StreamFifo(Bits(config.dataWidth bits), fifo_depth)
+
+    val outstandingWordsCounter = new Area {
+        val incr = Bool
+        val decr = Bool
+        val incr_value = SInt(9 bits)
+        val outstandingWords = Reg(UInt(log2Up(fifo_depth + 1) bits)) init(0)
+        val full = Bool
+        var nextValue = SInt(9 bits)
+
+        full := (outstandingWords + maxBurstLength) >= fifo_depth
+
+        nextValue := 0
+        when(incr) {
+            nextValue \= nextValue + incr_value
+        }
+        when(decr) {
+            nextValue \= nextValue - 1
+        }
+        outstandingWords := U(S(outstandingWords) + nextValue).resized
+    }
 
     io.axi_master.readRsp.ready := read_fifo.io.push.ready
     read_fifo.io.push.valid := io.axi_master.readRsp.valid
     read_fifo.io.push.payload := io.axi_master.readRsp.payload.data
     io.read_out << read_fifo.io.pop
+    outstandingWordsCounter.decr := read_fifo.io.pop.valid && read_fifo.io.pop.ready
 
     val fsm_ar = new StateMachine {
-        val words_left = Reg(UInt(8 bits))
+        val words_left = Reg(UInt(9 bits))
         val read_valid = Reg(Bool) init(False)
         val ar = Reg(Axi4Ar(config))
 
@@ -38,8 +59,10 @@ case class AxiReader(config : Axi4Config) extends Component {
         ar.prot := "110"
         ar.setBurstINCR()
 
-        io.read_job.ready := False
+        outstandingWordsCounter.incr := False
+        outstandingWordsCounter.incr_value := S(ar.len).resize(outstandingWordsCounter.incr_value.getWidth) + S(1)
 
+        io.read_job.ready := False
         io.busy := True
 
         val idle : State = new State with EntryPoint {
@@ -56,17 +79,17 @@ case class AxiReader(config : Axi4Config) extends Component {
 
         val start_read : State = new State {
             whenIsActive(
-                when(read_fifo.io.availability >= fifo_depth || read_fifo.io.availability >= words_left) {
+                when(!outstandingWordsCounter.full) {
                     read_valid := True
-                    when(words_left >= fifo_depth - 1) {
-                        ar.len := fifo_depth - 1
-                        words_left := words_left - fifo_depth
+                    when(words_left >= maxBurstLength - 1) {
+                        ar.len := maxBurstLength - 1
+                        words_left := words_left - maxBurstLength
                     }.otherwise {
                         ar.len := words_left.resized
                         words_left := 0
                     }
                     goto(wait_read)
-                }                
+                }
             )
         }
 
@@ -74,6 +97,7 @@ case class AxiReader(config : Axi4Config) extends Component {
             whenIsActive (
                 when(io.axi_master.ar.ready) {
                     read_valid := False
+                    outstandingWordsCounter.incr := True
                     goto(read_resp)
                 }
             )

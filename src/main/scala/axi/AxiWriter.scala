@@ -7,10 +7,10 @@ import spinal.lib.fsm._
 
 case class WriteJob(config : Axi4Config) extends Bundle {
     val address = UInt(config.addressWidth bits)
-    val word_count = UInt(8 bits)
+    val word_count = UInt(9 bits)
 }
 
-case class AxiWriter(config : Axi4Config) extends Component {
+case class AxiWriter(config : Axi4Config, maxBurstLength : Int) extends Component {
     val io = new Bundle {
         val axi_master = master(Axi4WriteOnly(config))
         val write_job = slave(Stream(WriteJob(config)))
@@ -21,7 +21,7 @@ case class AxiWriter(config : Axi4Config) extends Component {
     val w_fire = Bool
     val w_busy = Bool
     val w_len = UInt(8 bits)
-    val fifo_depth = 32
+    val fifo_depth = maxBurstLength
     val write_fifo = StreamFifo(Bits(config.dataWidth bits), fifo_depth)
     
     write_fifo.io.push << io.write_in
@@ -29,7 +29,7 @@ case class AxiWriter(config : Axi4Config) extends Component {
     val fsm_aw = new StateMachine {
         val aw_valid = Reg(Bool) init(False)
         val aw = Reg(Axi4Aw(config))
-        val words_left = Reg(UInt(8 bits))
+        val words_left = Reg(UInt(9 bits))
 
         io.axi_master.writeCmd.valid := aw_valid
         io.axi_master.writeCmd.payload := aw
@@ -42,7 +42,7 @@ case class AxiWriter(config : Axi4Config) extends Component {
         
         io.busy := True
         w_fire := False
-        w_len := words_left
+        w_len := fifo_depth - 1
         
         val idle : State = new State with EntryPoint {
             whenIsActive (
@@ -66,8 +66,8 @@ case class AxiWriter(config : Axi4Config) extends Component {
                         w_len := fifo_depth - 1
                         words_left := words_left - fifo_depth
                     }.otherwise {
-                        aw.len := words_left
-                        w_len := words_left
+                        aw.len := words_left.resized
+                        w_len := words_left.resized
                         words_left := 0
                     }
                     goto(wait_on_accept)

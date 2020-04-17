@@ -77,10 +77,10 @@ object DmaUnitSim {
 
       axiLite.read(0x0)
       axiLite.write(0x4, 0x00004000l)
-      axiLite.write(0x8, 35)
+      axiLite.write(0x8, 300)
       axiLite.write(0xc, 0x00008000l)
 
-      dut.clockDomain.waitSampling(100)
+      dut.clockDomain.waitSampling(1000)
     }
   }
 }
