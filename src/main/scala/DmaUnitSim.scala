@@ -58,6 +58,13 @@ case class AxiLite4Driver(axi : AxiLite4, clockDomain : ClockDomain) {
   }
 }
 
+object simConfig{
+  def getAxiMemorySimConfig = AxiMemorySimConfig(
+    maxOutstandingReads  = 8,
+    maxOutstandingWrites = 8
+  )
+}
+
 //MyTopLevel's testbench
 object DmaUnitSim {
   def main(args: Array[String]) {
@@ -66,7 +73,7 @@ object DmaUnitSim {
       dut.clockDomain.forkStimulus(period = 10)
 
       val axiLite = AxiLite4Driver(dut.io.axi_slave, dut.clockDomain)
-      val axiSim = AxiMemorySim(dut.io.axi_master, dut.clockDomain)
+      val axiSim = AxiMemorySim(dut.io.axi_master, dut.clockDomain, simConfig.getAxiMemorySimConfig)
 
       axiSim.memory.loadBinary(0x4000l, "./test_data/test.txt")
       

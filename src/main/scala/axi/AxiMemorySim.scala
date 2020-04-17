@@ -185,7 +185,14 @@ case class AxiJob (
   // check for read/write over 4k boundary
 }
 
-case class AxiMemorySim(axi : Axi4, clockDomain : ClockDomain) {
+case class AxiMemorySimConfig (
+  maxOutstandingReads  : Int = 8,
+  maxOutstandingWrites : Int = 8
+) {
+
+}
+
+case class AxiMemorySim(axi : Axi4, clockDomain : ClockDomain, config : AxiMemorySimConfig) {
   val memory = SparseMemory()
   val pending_reads = new mutable.Queue[AxiJob]
   val pending_writes = new mutable.Queue[AxiJob]
@@ -233,6 +240,9 @@ case class AxiMemorySim(axi : Axi4, clockDomain : ClockDomain) {
       pending_reads += newAxiJob(ar.payload.addr.toLong, ar.payload.len.toInt)
 
       println("AXI4 read cmd: addr=0x" + ar.payload.addr.toLong.toHexString + " count=" + (ar.payload.len.toBigInt+1))
+
+      if(pending_reads.length >= config.maxOutstandingReads)
+        clockDomain.waitSamplingWhere(pending_reads.length < config.maxOutstandingReads)
     }
   }
 
@@ -246,7 +256,7 @@ case class AxiMemorySim(axi : Axi4, clockDomain : ClockDomain) {
       clockDomain.waitSampling(10)
 
       if(pending_reads.nonEmpty) {
-        var job = pending_reads.dequeue()
+        var job = pending_reads.front
        
         r.valid #= true
 
@@ -259,6 +269,8 @@ case class AxiMemorySim(axi : Axi4, clockDomain : ClockDomain) {
 
         r.valid #= false
         r.payload.last #= false
+
+        pending_reads.dequeue()
 
         println("AXI4 read rsp: addr=0x" + job.address.toLong.toHexString + " count=" + (job.burstLength+1))
       }
@@ -283,6 +295,9 @@ case class AxiMemorySim(axi : Axi4, clockDomain : ClockDomain) {
       pending_writes += newAxiJob(aw.payload.addr.toLong, aw.payload.len.toInt)
 
       println("AXI4 write cmd: addr=0x" + aw.payload.addr.toLong.toHexString + " count=" + (aw.payload.len.toBigInt+1))
+
+      if(pending_writes.length >= config.maxOutstandingWrites)
+        clockDomain.waitSamplingWhere(pending_writes.length < config.maxOutstandingWrites)
     }
   }
 
@@ -296,7 +311,7 @@ case class AxiMemorySim(axi : Axi4, clockDomain : ClockDomain) {
       clockDomain.waitSampling(10)
 
       if(pending_writes.nonEmpty) {
-        var job = pending_writes.dequeue()
+        var job = pending_writes.front
         var count = job.burstLength
        
         w.ready #= true
@@ -312,6 +327,8 @@ case class AxiMemorySim(axi : Axi4, clockDomain : ClockDomain) {
         b.payload.resp #= 0
         clockDomain.waitSamplingWhere(b.ready.toBoolean)
         b.valid #= false
+
+        pending_writes.dequeue()
 
         println("AXI4 write: addr=0x" + job.address.toLong.toHexString + " count=" + (job.burstLength+1))
       }
